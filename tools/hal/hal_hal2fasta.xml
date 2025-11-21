@@ -1,0 +1,86 @@
+<tool id="hal_hal2fasta" name="HAL hal2fasta" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" python_template_version="3.5" profile="21.05">
+    <description>exports sequences to FASTA file</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/> 
+    <command detect_errors="aggressive"><![CDATA[
+        hal2fasta 
+            #if $format:
+            --format '$format'
+            #end if
+            #if $sequence:
+            --sequence '$sequence'
+            #end if
+            --start $start
+            --length $length
+            $subtree
+            --lineWidth $lineWidth
+            $upper
+            $ucscSequenceNames
+            #if $settings.cache == "custom"
+                #if $settings.memory.hdf5InMemory
+                --hdf5InMemory
+                #else
+                --hdf5CacheBytes $settings.memory.hdf5CacheBytes
+                --hdf5CacheMDC $settings.memory.hdf5CacheMDC
+                --hdf5CacheRDC $settings.memory.hdf5CacheRDC
+                --hdf5CacheW0 $settings.memory.hdf5CacheW0
+                #end if
+            #end if
+            '$in_hal_file' '$genome' > '$out_file'
+    ]]></command>
+    <inputs>
+        <expand macro="in_hal_file"/>
+        <param name="genome" type="text" value="" optional="false"
+            label="Genome" 
+            help="Genome to export" />   
+        <param argument="--sequence" type="text" value="" 
+            label="Sequence to export" 
+            help="sequence name to export (all sequences by default)" />  
+        <expand macro="params_format"/>            
+        <param argument="--start" type="integer" min="0" value="0"
+            help="Coordinate within reference genome (or sequence if specified) to start at" />
+        <param argument="--length" type="integer" min="0" value="0"
+            label="Length"
+            help="Length of the reference genome (or sequence if specified) to convert. If set to 0, the entire thing is converted" />
+        <param argument="--subtree" type="boolean" truevalue="--subtree" falsevalue="" checked="false" 
+            label="Subtree" 
+            help="Export all sequences in subtree rooted at &lt;genome&gt;" />        
+        <param argument="--upper" type="boolean" truevalue="--upper" falsevalue="" checked="false" 
+            label="Upper" 
+            help="Convert all bases to uppercase" />
+        <param argument="--ucscSequenceNames" type="boolean" truevalue="--ucscSequenceNames" falsevalue="" checked="false" 
+            label="Use UCSC convention" 
+            help="Use the UCSC convention of Genome.Sequence for names. By default, only sequence names are used" />
+        <param argument="--lineWidth" type="integer" min="0" value="80"
+            label="Line width"
+            help="Line width for output" />
+        <expand macro="params_cache"/>
+    </inputs>
+    <outputs>
+        <data name="out_file" format="fasta"
+            label="FASTA on ${input.name}" />
+    </outputs>
+    <tests>
+        <test expect_exit_code="0">
+            <param name="in_hal_file" value="halTest.hal"/>
+            <param name="genome" value="Genome_0" />
+            <output name="out_file" file="hal2fasta_output.fasta"/>
+        </test>
+        <test expect_exit_code="0">
+            <param name="in_hal_file" value="halTest.hal"/>
+            <param name="genome" value="Genome_0" />
+            <param name="sequence" value="Genome_0_seq" />
+            <output name="out_file" file="hal2fasta_sequence_output.fasta"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+Export sequences of genome or subtree of genomes from hal database to fasta file.
+
+**USAGE:**
+    hal2fasta [Options] <inHalPath> <genome>
+
+    ]]></help>
+    <expand macro="citation" />
+</tool>

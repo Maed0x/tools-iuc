@@ -1,0 +1,85 @@
+<tool id="hal_maf2hal" name="HAL maf2hal" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" python_template_version="3.5" profile="21.05">
+    <!-- 
+        TODO
+            - Its not the latest version. Some parameters are missing, e.g. refSequence
+              See https://github.com/ComparativeGenomicsToolkit/hal/blob/master/maf/impl/hal2maf.cpp
+            - When running, the first command always fails due to an error. Rerunning it succeeds the command
+
+    -->
+    <description>imports maf into hal database</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/> 
+    <command detect_errors="aggressive"><![CDATA[
+    maf2hal
+        #if $format:
+        --format '$format'
+        #end if
+        #if $refGenome:
+        --refGenome '$refGenome'
+        #end if
+        #if $targetGenomes:
+        --targetGenomes '$targetGenomes'
+        #end if
+        --mmapFileSize $mmapFileSize
+        #if $settings.cache == "custom"
+            #if $settings.memory.hdf5InMemory
+            --hdf5InMemory
+            #else
+            --hdf5CacheBytes $settings.memory.hdf5CacheBytes
+            --hdf5CacheMDC $settings.memory.hdf5CacheMDC
+            --hdf5CacheRDC $settings.memory.hdf5CacheRDC
+            --hdf5CacheW0 $settings.memory.hdf5CacheW0
+            #end if
+            --hdf5Chunk $settings.hdf5Chunk
+            --hdf5Compression $settings.hdf5Compression
+        #end if
+        '$in_maf_file' out_hal_file.hal
+    ]]></command>
+    <inputs>
+        <param name="in_maf_file" type="data" format="maf" label="Input MAF file to import into HAL database" optional="false"/>
+        <expand macro="params_format"/>
+        <param argument="--refGenome" type="text" value="" 
+            label="Reference genome" 
+            help="Name of reference genome in MAF (first found if empty)" />            
+        <param argument="--targetGenomes" type="text" value="" 
+            label="Target genome" 
+            help="Comma-separated (no spaces) list of target genomes (others are excluded) (vist all if empty)" />            
+        <param argument="--mmapFileSize" type="integer" label="mmap HAL file initial size" 
+            value="60" min="0" optional="false"
+            help="mmap HAL file initial size (in gigabytes)" />
+        <expand macro="params_cache_extended"/>
+    </inputs>
+    <outputs>
+        <data name="out_hal_file" format="hal" from_work_dir="out_hal_file.hal"
+            label="HAL on ${input.name}" />
+    </outputs>
+    <tests>
+        <test expect_exit_code="0">
+            <param name="in_maf_file" value="hal2mafSmallTest.maf"/>
+            <output name="out_hal_file" file="halTest.hal"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+MAF is a text format used at UCSC to store genome alignments. MAFs are typically stored with respect to a reference genome. MAFs can be imported into HAL as subtrees using the maf2hal command.
+
+To import primates.maf as a star tree where the first alignment row specifies the root, and all others the leaves:
+    maf2hal primates.maf primates.hal
+
+To import primates.maf using "chimp" has the root
+    maf2hal primates.maf primates.hal --refGenome chimp
+
+The more the underlying tree looks like a star tree, the less efficient HAL is as all genomes will be fragmented with respect to each other. If ancestral (or multiple reference) sequences are available, or if it is acceptable to use a non-reference species as a reference proxy, then trees of arbitrary typologies can be constructed using the --append option.
+    maf2hal mammals.maf mammals.hal --refGenome mouse --targetGenomes human,rat,chimp,dog
+    maf2hal mammals.maf mammals.hal --append --refGenome human --targetGenomes chimp,gorilla,orang
+    maf2hal mammals.maf mammals.hal --append --refGenome dog --targetGenomes cow,horse
+
+This will create a tree that looks like
+    ((chimp, gorilla,orang)human, rat,(cow,horse)dog)mouse;
+    
+**USAGE:**
+    maf2hal [Options] <mafFile> <halFile>
+    ]]></help>
+    <expand macro="citation" />
+</tool>

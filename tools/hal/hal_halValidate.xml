@@ -1,0 +1,75 @@
+<tool id="hal_halValidate" name="HAL halValidate" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" python_template_version="3.5" profile="21.05">
+        <!-- 
+        TODO
+            - If exit code is != 0, does the error still get printed into output.txt?
+
+    -->
+    
+    <description>is to check if a hal file is valid</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/> 
+    <command detect_errors="aggressive"><![CDATA[
+        if halValidate
+                #if $format:
+                --format '$format'
+                #end if
+                #if $genome:
+                --genome '$genome'
+                #end if
+                #if $settings.cache == "custom"
+                    #if $settings.memory.hdf5InMemory
+                    --hdf5InMemory
+                    #else
+                    --hdf5CacheBytes $settings.memory.hdf5CacheBytes
+                    --hdf5CacheMDC $settings.memory.hdf5CacheMDC
+                    --hdf5CacheRDC $settings.memory.hdf5CacheRDC
+                    --hdf5CacheW0 $settings.memory.hdf5CacheW0
+                    #end if
+                #end if
+                '$in_hal_file'; then
+            echo '{ "valid": true, "message": "File valid" }' > result.json
+        else
+            echo '{ "valid": false, "message": "File invalid" }' > result.json
+        fi
+    ]]></command>
+    <inputs>
+        <expand macro="in_hal_file"/>
+        <expand macro="params_format"/>
+        <param argument="--genome" type="text" value="" 
+            label="Genome" 
+            help="Specific genome to validate instead of entire file " />            
+        <expand macro="params_cache"/>
+    </inputs>
+    <outputs>
+        <data name="result" format="json" label="Validation report on ${input.name}" from_work_dir="result.json" />
+    </outputs>
+    <tests>
+        <test expect_exit_code="0">
+            <param name="in_hal_file" value="halTest.hal"/>
+            <output name="result">
+                <assert_contents>
+                    <has_text text='"valid": true' />
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_exit_code="0">
+            <param name="in_hal_file" value="halTest.hal"/>
+            <param name="genome" value="Genome_0" />
+            <output name="result">
+                <assert_contents>
+                    <has_text text='"valid": true' />
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help><![CDATA[
+Check if hal database is valid.
+
+**USAGE:**
+    halValidate [Options] <halFile>
+
+    ]]></help>
+    <expand macro="citation" />
+</tool>
